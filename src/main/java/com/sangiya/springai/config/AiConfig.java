@@ -11,11 +11,10 @@ public class AiConfig {
 
     /**
      * In-memory vector store backed by cosine similarity search.
-     * No external service needed — ideal for demos and single-instance deployments.
-     * Swap for PgVectorStore or RedisVectorStore for production scale.
+     * No external service needed — swap for PgVectorStore or RedisVectorStore for production.
      */
     @Bean
     public VectorStore vectorStore(EmbeddingModel embeddingModel) {
-        return SimpleVectorStore.builder(embeddingModel).build();
+        return new SimpleVectorStore(embeddingModel);
     }
 }

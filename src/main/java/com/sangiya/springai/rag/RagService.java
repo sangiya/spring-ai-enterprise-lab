@@ -35,7 +35,7 @@ public class RagService {
                         If the context does not contain enough information, say so explicitly.
                         """)
                 .defaultAdvisors(new QuestionAnswerAdvisor(vectorStore,
-                        SearchRequest.builder().topK(4).build()))
+                        SearchRequest.defaults().withTopK(4)))
                 .build();
     }
 
