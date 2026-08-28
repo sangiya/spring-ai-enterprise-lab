@@ -1,52 +1,65 @@
 package com.sangiya.springai.rag;
 
+import com.sangiya.springai.client.OpenAiClient;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.ai.chat.model.ChatResponse;
-import org.springframework.ai.chat.model.Generation;
-import org.springframework.ai.chat.messages.AssistantMessage;
-import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.vectorstore.VectorStore;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class RagServiceTest {
+
+    @Mock
+    private OpenAiClient client;
+
+    private VectorStore vectorStore;
+    private RagService ragService;
+
+    @BeforeEach
+    void setUp() {
+        vectorStore = new VectorStore();
+        ragService = new RagService(vectorStore, client);
+        // Stub embedding to return a fixed vector for any text
+        when(client.embed(anyString()))
+                .thenReturn(new float[]{0.1f, 0.2f, 0.3f});
+    }
 
     @Test
     void query_returnsAnswerFromModel() {
-        ChatModel chatModel = mock(ChatModel.class);
-        VectorStore vectorStore = mock(VectorStore.class);
+        when(client.chatCompletion(anyList())).thenReturn("The answer is 42.");
 
-        // Vector store returns no documents (empty context is still valid)
-        when(vectorStore.similaritySearch(any())).thenReturn(List.of());
-
-        ChatResponse response = new ChatResponse(
-                List.of(new Generation(new AssistantMessage("The answer is 42."))));
-        when(chatModel.call(any(Prompt.class))).thenReturn(response);
-
-        ChatClient.Builder builder = ChatClient.builder(chatModel);
-        RagService service = new RagService(builder, vectorStore);
-
-        String result = service.query("What is the answer?");
+        ragService.ingest(List.of("The answer to everything is 42."));
+        String result = ragService.query("What is the answer?");
 
         assertThat(result).isEqualTo("The answer is 42.");
     }
 
     @Test
-    void ingest_delegatesToVectorStore() {
-        ChatModel chatModel = mock(ChatModel.class);
-        VectorStore vectorStore = mock(VectorStore.class);
+    void ingest_addsDocumentsToVectorStore() {
+        ragService.ingest(List.of("passage one", "passage two", "passage three"));
 
-        ChatClient.Builder builder = ChatClient.builder(chatModel);
-        RagService service = new RagService(builder, vectorStore);
+        assertThat(vectorStore.size()).isEqualTo(3);
+        verify(client, times(3)).embed(anyString());
+    }
 
-        service.ingest(List.of("passage one", "passage two"));
+    @Test
+    void query_includesRetrievedContextInPrompt() {
+        ragService.ingest(List.of("Spring Boot 3 requires Java 17+."));
+        when(client.chatCompletion(anyList())).thenReturn("Java 17 minimum.");
 
-        verify(vectorStore).add(argThat(docs -> docs.size() == 2));
+        ragService.query("What Java version?");
+
+        // Verify the chat completion was called with messages containing context
+        verify(client).chatCompletion(argThat(msgs ->
+                msgs.stream().anyMatch(m -> m.get("content") != null
+                        && m.get("content").contains("Spring Boot 3 requires Java 17+."))));
     }
 }

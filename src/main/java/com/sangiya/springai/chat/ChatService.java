@@ -1,50 +1,49 @@
 package com.sangiya.springai.chat;
 
+import com.sangiya.springai.client.OpenAiClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
-import org.springframework.ai.chat.memory.InMemoryChatMemory;
-import org.springframework.ai.chat.messages.UserMessage;
-import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
- * Chat service demonstrating:
- *  1. Basic prompt → completion round-trip
- *  2. Streaming completions via Flux for server-sent events
- *  3. Conversation memory — each conversation ID maintains its own message history
+ * Chat service with stateful conversation memory.
+ *
+ * Each call to chat() appends the user message and assistant reply to the
+ * conversation history for that conversationId. Subsequent calls include
+ * the full history so the model has context of prior turns — exactly how
+ * production chatbots maintain multi-turn state.
  */
 @Service
+@RequiredArgsConstructor
 @Slf4j
 public class ChatService {
 
-    private final ChatClient chatClient;
+    private static final String SYSTEM_PROMPT =
+            "You are a helpful enterprise software assistant. Be concise and precise.";
 
-    public ChatService(ChatClient.Builder builder) {
-        this.chatClient = builder
-                .defaultSystem("You are a helpful enterprise software assistant.")
-                .defaultAdvisors(new MessageChatMemoryAdvisor(new InMemoryChatMemory()))
-                .build();
-    }
+    private final OpenAiClient client;
+    private final ConversationMemory memory;
 
-    /** Blocking single-turn completion. */
     public String chat(String conversationId, String userMessage) {
-        log.info("Chat request conversationId={} message={}", conversationId, userMessage);
-        return chatClient.prompt()
-                .advisors(a -> a.param(MessageChatMemoryAdvisor.CONVERSATION_ID_KEY, conversationId))
-                .user(userMessage)
-                .call()
-                .content();
+        log.info("Chat conversationId={} message={}", conversationId, userMessage);
+
+        memory.addUserMessage(conversationId, userMessage);
+
+        List<Map<String, String>> messages = buildMessages(conversationId);
+        String reply = client.chatCompletion(messages);
+
+        memory.addAssistantMessage(conversationId, reply);
+        return reply;
     }
 
-    /** Streaming completion — each token is emitted as it arrives from the model. */
-    public Flux<String> stream(String conversationId, String userMessage) {
-        return chatClient.prompt()
-                .advisors(a -> a.param(MessageChatMemoryAdvisor.CONVERSATION_ID_KEY, conversationId))
-                .user(userMessage)
-                .stream()
-                .content();
+    private List<Map<String, String>> buildMessages(String conversationId) {
+        List<Map<String, String>> messages = new ArrayList<>();
+        messages.add(Map.of("role", "system", "content", SYSTEM_PROMPT));
+        messages.addAll(memory.getHistory(conversationId));
+        return messages;
     }
 }

@@ -21,8 +21,7 @@ public class RagController {
 
     @PostMapping("/query")
     public QueryResponse query(@RequestBody QueryRequest request) {
-        String answer = ragService.query(request.question());
-        return new QueryResponse(answer);
+        return new QueryResponse(ragService.query(request.question()));
     }
 
     record IngestRequest(List<String> passages) {}

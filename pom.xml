@@ -16,15 +16,14 @@
     <version>1.0.0</version>
     <name>Spring AI Enterprise Lab</name>
     <description>
-        Enterprise patterns for Spring AI: streaming chat completions, RAG (Retrieval-Augmented
-        Generation) with an in-memory vector store, function calling for structured tool use,
-        and conversation memory. All patterns are isolated from real AI providers via a mock
-        ChatModel so the test suite runs offline without an API key.
+        Enterprise AI integration patterns on Spring Boot 3: chat completions with conversation
+        memory, RAG (Retrieval-Augmented Generation) with cosine-similarity vector search,
+        function calling, and streaming completions — implemented via native Java HTTP client
+        calls to the OpenAI-compatible REST API so the project works offline in tests.
     </description>
 
     <properties>
         <java.version>21</java.version>
-        <spring-ai.version>1.0.0</spring-ai.version>
     </properties>
 
     <dependencies>
@@ -42,13 +41,6 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
-        <!-- Spring AI: OpenAI starter (includes spring-ai-core with advisors, vectorstore) -->
-        <dependency>
-            <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-openai-spring-boot-starter</artifactId>
-            <version>${spring-ai.version}</version>
-        </dependency>
-
         <!-- Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -56,8 +48,6 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-
-    <!-- Spring AI 1.0.0 GA is on Maven Central — no custom Spring repo needed -->
 
     <build>
         <plugins>
