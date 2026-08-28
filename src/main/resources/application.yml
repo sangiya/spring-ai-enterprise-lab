@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: spring-ai-enterprise-lab
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:demo-key-replace-me}
+      chat:
+        options:
+          model: gpt-4o-mini
+          temperature: 0.7
+      embedding:
+        options:
+          model: text-embedding-3-small
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+server:
+  port: 8080
