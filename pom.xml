@@ -19,25 +19,13 @@
         Enterprise patterns for Spring AI: streaming chat completions, RAG (Retrieval-Augmented
         Generation) with an in-memory vector store, function calling for structured tool use,
         and conversation memory. All patterns are isolated from real AI providers via a mock
-        ChatClient so the test suite runs offline without an API key.
+        ChatModel so the test suite runs offline without an API key.
     </description>
 
     <properties>
         <java.version>21</java.version>
         <spring-ai.version>1.0.0</spring-ai.version>
     </properties>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.springframework.ai</groupId>
-                <artifactId>spring-ai-bom</artifactId>
-                <version>${spring-ai.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 
     <dependencies>
         <dependency>
@@ -54,10 +42,11 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
-        <!-- Spring AI: OpenAI starter brings in spring-ai-core (advisors, vectorstore, etc.) -->
+        <!-- Spring AI: OpenAI starter (includes spring-ai-core with advisors, vectorstore) -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-openai-spring-boot-starter</artifactId>
+            <version>${spring-ai.version}</version>
         </dependency>
 
         <!-- Test -->
@@ -73,9 +62,13 @@
             <id>spring-milestones</id>
             <name>Spring Milestones</name>
             <url>https://repo.spring.io/milestone</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
+            <snapshots><enabled>false</enabled></snapshots>
+        </repository>
+        <repository>
+            <id>spring-releases</id>
+            <name>Spring Releases</name>
+            <url>https://repo.spring.io/release</url>
+            <snapshots><enabled>false</enabled></snapshots>
         </repository>
     </repositories>
 
